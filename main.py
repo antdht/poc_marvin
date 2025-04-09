@@ -1,6 +1,5 @@
-def hello_world():
-    print("Hello, world!")
-
+import tests
 
 if __name__ == "__main__":
-    hello_world()
+    tests.testRsa()
+    print("All tests passed.")
