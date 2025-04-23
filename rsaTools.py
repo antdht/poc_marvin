@@ -1,10 +1,11 @@
+from typing import Tuple
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
 
-def generateRSAKeyPair():
+def generateRSAKeyPair() -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
     """
     Generates a pair of RSA keys.
     Returns:
@@ -20,7 +21,7 @@ def generateRSAKeyPair():
     return private_key, public_key
 
 
-def encrypt(plaintext, public_key):
+def encrypt(plaintext: bytes, public_key: rsa.RSAPublicKey) -> bytes:
     """
     Encrypts a message using the public key.
     Args:
@@ -40,7 +41,7 @@ def encrypt(plaintext, public_key):
     return ciphertext
 
 
-def decrypt(ciphertext, private_key):
+def decrypt(ciphertext: bytes, private_key: rsa.RSAPrivateKey) -> bytes:
     """
     Decrypts a message using the private key.
     Args:
