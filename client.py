@@ -1,5 +1,5 @@
-from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 import base64
 import rsaTools as rsa
@@ -16,17 +16,26 @@ response = requests.get(GET_PUBLIC_KEY_URL)
 pem_str = response.json()["public_key"]
 
 # Safe load
-public_key = load_pem_public_key(pem_str.encode("utf-8"), backend=default_backend())
+public_key = serialization.load_pem_public_key(
+    pem_str.encode("utf-8"), backend=default_backend()
+)
 assert isinstance(public_key, RSAPublicKey), "Invalid public key type"
 print("Public Key:", public_key)
 
-# Step 3: Encrypt the message
-cyphetext = rsa.encrypt(MESSAGE, public_key)
+public_numbers = public_key.public_numbers()
+n = public_numbers.n
+e = public_numbers.e
 
-# Optional: Base64 encode it to send as string
-encoded_msg = base64.b64encode(cyphetext).decode("utf-8")
+print(f"Modulus (n): {n}")
+print(f"Exponent (e): {e}")
 
-# Step 4: Send it to the server
-post_response = requests.post(POST_MESSAGE_URL, json={"encrypted_message": encoded_msg})
+k = n.bit_length()
+print(f"K number (k): {k}")
 
-print("Server response:", post_response.text)
+B = pow(2, k - 16)
+
+print(f"B number (B): {B}")
+
+
+def find_valid_padding(ciphertext: bytes):
+    pass
