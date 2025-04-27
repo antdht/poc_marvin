@@ -60,15 +60,3 @@ def decrypt(ciphertext: bytes, private_key: rsa.RSAPrivateKey) -> bytes:
         ),
     )
     return plaintext
-
-
-if __name__ == "__main__":
-    private_key, public_key = generateRSAKeyPair()
-    print("Private Key:", private_key)
-    print("Public Key:", public_key)
-    message = b"Hello, this is a secret message."
-    print("Original Message:", message)
-    encrypted_message = encrypt(message, public_key)
-    print("Encrypted Message:", encrypted_message)
-    decrypted_message = decrypt(encrypted_message, private_key)
-    print("Decrypted Message:", decrypted_message)
