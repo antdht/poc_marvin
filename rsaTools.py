@@ -1,7 +1,6 @@
-from typing import Tuple
+from typing import Tuple, cast
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
 
@@ -12,11 +11,15 @@ def generateRSAKeyPair() -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
         private_key: The generated private key.
         public_key: The generated public key.
     """
-    private_key = rsa.generate_private_key(
-        public_exponent=65537, key_size=1024, backend=default_backend()
+    # Cast is used to tell the type checker "trust me, I know what I'm doing", as this old version of pyca/cryptography is not PEP 561 compliant
+    private_key = cast(
+        rsa.RSAPrivateKey,
+        rsa.generate_private_key(
+            public_exponent=65537, key_size=1024, backend=default_backend()
+        ),
     )
 
-    public_key = private_key.public_key()  # type: ignore
+    public_key = cast(rsa.RSAPublicKey, private_key.public_key())
 
     return private_key, public_key
 
@@ -30,12 +33,11 @@ def encrypt(plaintext: bytes, public_key: rsa.RSAPublicKey) -> bytes:
     Returns:
         ciphertext: The encrypted message.
     """
-    ciphertext = public_key.encrypt(
-        plaintext,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
+    ciphertext = cast(
+        bytes,
+        public_key.encrypt(
+            plaintext,
+            padding.PKCS1v15(),
         ),
     )
     return ciphertext
@@ -50,12 +52,11 @@ def decrypt(ciphertext: bytes, private_key: rsa.RSAPrivateKey) -> bytes:
     Returns:
         plaintext: The decrypted message.
     """
-    plaintext = private_key.decrypt(
-        ciphertext,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
+    plaintext = cast(
+        bytes,
+        private_key.decrypt(
+            ciphertext,
+            padding.PKCS1v15(),
         ),
     )
     return plaintext
