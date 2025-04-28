@@ -11,7 +11,7 @@ def generateRSAKeyPair() -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
         private_key: The generated private key.
         public_key: The generated public key.
     """
-    # Cast is used to tell the type checker "trust me, I know what I'm doing", as this old version of pyca/cryptography is not PEP 561 compliant
+    # NOTE: cast is used to tell the type checker "trust me, I know what I'm doing", as this old version of pyca/cryptography is not PEP 561 compliant
     private_key = cast(
         rsa.RSAPrivateKey,
         rsa.generate_private_key(
