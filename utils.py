@@ -1,9 +1,7 @@
-from typing import Tuple
-
+from typing import Tuple, cast
 from cryptography.hazmat.primitives.asymmetric import rsa
 import rsaTools
 from random import randint
-from typing import Tuple
 import time
 
 
@@ -22,7 +20,7 @@ def oracle_time_check(ciphertext: bytes, private_key: rsa.RSAPrivateKey) -> floa
 
 
 def generate_interval(
-    publicKey: rsa.RSAPublicKey, private_key: rsa.RSAPrivateKey, original_plain: str
+    private_key: rsa.RSAPrivateKey, original_plain: str
 ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
     """
     Generate interval for side chanel attack
@@ -33,7 +31,7 @@ def generate_interval(
         Intervals of true and false
     """
     # Setting up the fuzzer
-    original_lenght = len(original_plain)
+    original_length = len(original_plain)
     charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     chars_mod = 62
     primes = [
@@ -60,32 +58,41 @@ def generate_interval(
     ]
 
     base = primes[randint(0, 19)]
-    list_of_valid_padding_records = []
-    list_of_unvalid_padding_records = []
-
+    validPad = []
+    unvalidPad = []
+    publicKey = cast(rsa.RSAPublicKey, private_key.public_key())
     # Start loop
-    for i in range(20):
+    j = 20000
+    print(f"testing for {j} iterations")
+    for i in range(j):
         ciphertext = rsaTools.encrypt(original_plain.encode(), publicKey)
-        list_of_valid_padding_records.append(oracle_time_check(ciphertext, private_key))
+        validPad.append(oracle_time_check(ciphertext, private_key))
 
         if i < 5:
             ciphertext_but_invalid = ciphertext[1:]
-            list_of_unvalid_padding_records.append(
-                oracle_time_check(ciphertext_but_invalid, private_key)
-            )
+            unvalidPad.append(oracle_time_check(ciphertext_but_invalid, private_key))
 
         elif i < 12:
             ciphertext_but_invalid = ciphertext
             ciphertext_but_invalid = b"\x10\x10" + ciphertext_but_invalid[:2]
-            list_of_unvalid_padding_records.append(
-                oracle_time_check(ciphertext_but_invalid, private_key)
-            )
+            unvalidPad.append(oracle_time_check(ciphertext_but_invalid, private_key))
         else:
             ciphertext_but_invalid = ciphertext[::-1]
-            list_of_unvalid_padding_records.append(
-                oracle_time_check(ciphertext_but_invalid, private_key)
-            )
+            unvalidPad.append(oracle_time_check(ciphertext_but_invalid, private_key))
 
-    print(list_of_valid_padding_records)
-    print(list_of_unvalid_padding_records)
+    print("Valid padding records:")
+    validPad.sort()
+    validSize = len(validPad)
+    validMean = sum(validPad) / validSize
+    print(
+        f"Smallest: {validPad[0]}\nMedian:{validPad[validSize // 2]}\nLargest: {validPad[-2]}\nMean: {validMean}\n"
+    )
+
+    print("Invalid padding records:")
+    unvalidPad.sort()
+    unvalidSize = len(unvalidPad)
+    unvalidMean = sum(unvalidPad) / unvalidSize
+    print(
+        f"Smallest: {unvalidPad[0]}\nMedian:{unvalidPad[unvalidSize // 2]}\nLargest: {unvalidPad[-2]}\nMean: {unvalidMean}\n"
+    )
     return (0.0, 1.0), (1.0, 2.0)

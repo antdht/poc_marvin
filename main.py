@@ -23,7 +23,7 @@ e = public_numbers.e
 #
 # print(f"B number (B): {B}")
 
-utils.generate_interval(public_key, private_key, MESSAGE)
+utils.generate_interval(private_key, MESSAGE)
 
 
 # M = [2 * B, 3 * B - 1]
