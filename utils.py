@@ -77,7 +77,7 @@ def generate_interval(
             ciphertext_but_invalid = b"\x10\x10" + ciphertext_but_invalid[:2]
             unvalidPad.append(oracle_time_check(ciphertext_but_invalid, private_key))
         else:
-            ciphertext_but_invalid = ciphertext[::-1]
+            ciphertext_but_invalid = ciphertext[1:]
             unvalidPad.append(oracle_time_check(ciphertext_but_invalid, private_key))
 
     print("Valid padding records:")
