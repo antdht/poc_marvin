@@ -1,4 +1,5 @@
-from typing import Tuple, cast
+import re
+from typing import Tuple, cast, Union
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -43,7 +44,7 @@ def encrypt(plaintext: bytes, public_key: rsa.RSAPublicKey) -> bytes:
     return ciphertext
 
 
-def decrypt(ciphertext: bytes, private_key: rsa.RSAPrivateKey) -> bytes:
+def decrypt(ciphertext: bytes, private_key: rsa.RSAPrivateKey) -> Union[bytes, None]:
     """
     Decrypts a message using the private key.
     Args:
@@ -52,11 +53,14 @@ def decrypt(ciphertext: bytes, private_key: rsa.RSAPrivateKey) -> bytes:
     Returns:
         plaintext: The decrypted message.
     """
-    plaintext = cast(
-        bytes,
-        private_key.decrypt(
-            ciphertext,
-            padding.PKCS1v15(),
-        ),
-    )
-    return plaintext
+    try:
+        plaintext = cast(
+            bytes,
+            private_key.decrypt(
+                ciphertext,
+                padding.PKCS1v15(),
+            ),
+        )
+        return plaintext
+    except:
+        return None
