@@ -1,6 +1,7 @@
 from typing import Tuple, cast
 from cryptography.hazmat.primitives.asymmetric import rsa
 import rsaTools
+from random import randint, random
 import time
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,6 +21,51 @@ def oracle_time_check(ciphertext: bytes, private_key: rsa.RSAPrivateKey) -> floa
     return diff
 
 
+def str_fuzzing(text: bytes) -> bytes:
+    """
+    Fuzz the input bytes by randomly modifying a few characters.
+    Args:
+        text: The byte string to fuzz.
+    Returns:
+        A fuzzed version of the byte string.
+    """
+    primes = [
+        101,
+        103,
+        107,
+        109,
+        113,
+        127,
+        131,
+        137,
+        139,
+        149,
+        151,
+        157,
+        163,
+        167,
+        173,
+        179,
+        181,
+        191,
+        193,
+        197,
+    ]
+
+    charset = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    chars_mod = len(charset)
+    original_length = len(text)
+
+    for _ in range(3):
+        base = primes[randint(0, len(primes) - 1)]
+        exp = randint(2, 3)
+        index = pow(base, exp, original_length)
+        replacement = bytes([charset[pow(base, exp, chars_mod)]])
+        text = text[:index] + replacement + text[index + 1 :]
+
+    return text
+
+
 def generate_interval(
     private_key: rsa.RSAPrivateKey, original_plain: str
 ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
@@ -32,27 +78,50 @@ def generate_interval(
         Intervals of true and false
     """
     # Setting up the fuzzer
+
     validPad = []
     invalidPad = []
+    byte_text = original_plain.encode()
     publicKey = cast(rsa.RSAPublicKey, private_key.public_key())
     # Start loop
-    j = 20000000
+    j = 200000
     print(f"testing for {j} iterations")
     for i in range(j):
-        ciphertext = rsaTools.encrypt(original_plain.encode(), publicKey)
-        validPad.append(oracle_time_check(ciphertext, private_key))
+        fuzzed_byte_text = str_fuzzing(byte_text)
+        ciphertext = rsaTools.encrypt(fuzzed_byte_text, publicKey)
+        validPad.append(
+            min(
+                oracle_time_check(ciphertext, private_key),
+                oracle_time_check(ciphertext, private_key),
+            )
+        )
 
         if i < j // 3:
             invalidCipher = ciphertext[1:]
-            invalidPad.append(oracle_time_check(invalidCipher, private_key))
+            invalidPad.append(
+                min(
+                    oracle_time_check(invalidCipher, private_key),
+                    oracle_time_check(invalidCipher, private_key),
+                )
+            )
 
         elif i < 2 * j // 3:
             invalidCipher = ciphertext
             invalidCipher = b"\x10\x10" + invalidCipher[:2]
-            invalidPad.append(oracle_time_check(invalidCipher, private_key))
+            invalidPad.append(
+                min(
+                    oracle_time_check(invalidCipher, private_key),
+                    oracle_time_check(invalidCipher, private_key),
+                )
+            )
         else:
             invalidCipher = ciphertext[1:]
-            invalidPad.append(oracle_time_check(invalidCipher, private_key))
+            invalidPad.append(
+                min(
+                    oracle_time_check(invalidCipher, private_key),
+                    oracle_time_check(invalidCipher, private_key),
+                )
+            )
 
     print("Valid padding records:")
     validPad.sort()
