@@ -1,8 +1,9 @@
 from typing import Tuple, cast
 from cryptography.hazmat.primitives.asymmetric import rsa
 import rsaTools
-from random import randint
 import time
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def oracle_time_check(ciphertext: bytes, private_key: rsa.RSAPrivateKey) -> float:
@@ -31,54 +32,27 @@ def generate_interval(
         Intervals of true and false
     """
     # Setting up the fuzzer
-    original_length = len(original_plain)
-    charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    chars_mod = 62
-    primes = [
-        101,
-        103,
-        107,
-        109,
-        113,
-        127,
-        131,
-        137,
-        139,
-        149,
-        151,
-        157,
-        163,
-        167,
-        173,
-        179,
-        181,
-        191,
-        193,
-        197,
-    ]
-
-    base = primes[randint(0, 19)]
     validPad = []
-    unvalidPad = []
+    invalidPad = []
     publicKey = cast(rsa.RSAPublicKey, private_key.public_key())
     # Start loop
-    j = 20000
+    j = 20000000
     print(f"testing for {j} iterations")
     for i in range(j):
         ciphertext = rsaTools.encrypt(original_plain.encode(), publicKey)
         validPad.append(oracle_time_check(ciphertext, private_key))
 
-        if i < 5:
-            ciphertext_but_invalid = ciphertext[1:]
-            unvalidPad.append(oracle_time_check(ciphertext_but_invalid, private_key))
+        if i < j // 3:
+            invalidCipher = ciphertext[1:]
+            invalidPad.append(oracle_time_check(invalidCipher, private_key))
 
-        elif i < 12:
-            ciphertext_but_invalid = ciphertext
-            ciphertext_but_invalid = b"\x10\x10" + ciphertext_but_invalid[:2]
-            unvalidPad.append(oracle_time_check(ciphertext_but_invalid, private_key))
+        elif i < 2 * j // 3:
+            invalidCipher = ciphertext
+            invalidCipher = b"\x10\x10" + invalidCipher[:2]
+            invalidPad.append(oracle_time_check(invalidCipher, private_key))
         else:
-            ciphertext_but_invalid = ciphertext[1:]
-            unvalidPad.append(oracle_time_check(ciphertext_but_invalid, private_key))
+            invalidCipher = ciphertext[1:]
+            invalidPad.append(oracle_time_check(invalidCipher, private_key))
 
     print("Valid padding records:")
     validPad.sort()
@@ -88,11 +62,34 @@ def generate_interval(
         f"Smallest: {validPad[0]}\nMedian:{validPad[validSize // 2]}\nLargest: {validPad[-2]}\nMean: {validMean}\n"
     )
 
-    print("Invalid padding records:")
-    unvalidPad.sort()
-    unvalidSize = len(unvalidPad)
-    unvalidMean = sum(unvalidPad) / unvalidSize
-    print(
-        f"Smallest: {unvalidPad[0]}\nMedian:{unvalidPad[unvalidSize // 2]}\nLargest: {unvalidPad[-2]}\nMean: {unvalidMean}\n"
+    counts, bin_edges = np.histogram(
+        validPad, bins=100, range=(validPad[0], validPad[-1])
     )
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    plt.plot(bin_centers, counts, linestyle="-", marker="", color="blue")
+    plt.yscale("log")
+    plt.title("Log-Scale Distribution (Line Plot)")
+    plt.xlabel("Value")
+    plt.ylabel("Frequency (log scale)")
+    plt.savefig("valid_log_larger.png", dpi=300)
+    plt.clf()
+
+    print("Invalid padding records:")
+    invalidPad.sort()
+    invalidSize = len(invalidPad)
+    invalidMean = sum(invalidPad) / invalidSize
+    print(
+        f"Smallest: {invalidPad[0]}\nMedian:{invalidPad[invalidSize // 2]}\nLargest: {invalidPad[-2]}\nMean: {invalidMean}\n"
+    )
+    counts2, bin_edges2 = np.histogram(
+        invalidPad, bins=100, range=(invalidPad[0], invalidPad[-1])
+    )
+    bin_centers2 = (bin_edges2[:-1] + bin_edges2[1:]) / 2
+    plt.plot(bin_centers2, counts2, linestyle="-", marker="", color="blue")
+    plt.yscale("log")
+    plt.title("Log-Scale Distribution (Line Plot)")
+    plt.xlabel("Value")
+    plt.ylabel("Frequency (log scale)")
+    plt.savefig("unvalid_log_larger.png", dpi=300)
+
     return (0.0, 1.0), (1.0, 2.0)
