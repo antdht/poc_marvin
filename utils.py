@@ -160,4 +160,4 @@ def generate_interval(private_key: rsa.RSAPrivateKey, original_plain: str) -> fl
     plt.savefig("unvalid_log_double.png", dpi=300)
     distance = invalidMean + (validPad[0] - invalidMean) * 2 / 3
     print(f"Distance: {distance}")
-    return invalidMean
+    return distance
