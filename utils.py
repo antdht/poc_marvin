@@ -1,7 +1,7 @@
 from typing import Tuple, cast
 from cryptography.hazmat.primitives.asymmetric import rsa
 import rsaTools
-from random import randint, random
+from random import randint
 import time
 import matplotlib.pyplot as plt
 import numpy as np
@@ -66,9 +66,7 @@ def str_fuzzing(text: bytes) -> bytes:
     return text
 
 
-def generate_interval(
-    private_key: rsa.RSAPrivateKey, original_plain: str
-) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+def generate_interval(private_key: rsa.RSAPrivateKey, original_plain: str) -> float:
     """
     Generate interval for side chanel attack
     Args:
@@ -160,5 +158,6 @@ def generate_interval(
     plt.xlabel("Value")
     plt.ylabel("Frequency (log scale)")
     plt.savefig("unvalid_log_double.png", dpi=300)
-
-    return (0.0, 1.0), (1.0, 2.0)
+    distance = invalidMean + (validPad[0] - invalidMean) * 2 / 3
+    print(f"Distance: {distance}")
+    return invalidMean
