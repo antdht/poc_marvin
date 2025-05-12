@@ -1,24 +1,25 @@
-from typing import Tuple, cast
+from typing import cast
 from cryptography.hazmat.primitives.asymmetric import rsa
-import rsaTools
 from random import randint
-import time
 import matplotlib.pyplot as plt
 import numpy as np
+import oracle
 
 
-def oracle_time_check(ciphertext: bytes, private_key: rsa.RSAPrivateKey) -> float:
+def isPKCSConforming(
+    cipherText: bytes, oracle: oracle.Oracle, decisionThreshold: float
+) -> bool:
     """
-    Checks the time taken by the oracle to process the ciphertext.
+    Check if the ciphertext is PKCS conforming.
     Args:
-        ciphertext: the message to check.
+        cipherText: The ciphertext to check.
+        oracle: The oracle object used to check the ciphertext.
+        decisionThreshold: The threshold for deciding if the ciphertext is PKCS conforming.
     Returns:
-        float: the time the oracle took to process the ciphertext.
+        True if the ciphertext is PKCS conforming, False otherwise.
     """
-    start = time.monotonic_ns()
-    rsaTools.decrypt(ciphertext, private_key)
-    diff = time.monotonic_ns() - start
-    return diff
+    # Takes longer than threshold -> PKCS conforming (no error raised)
+    return oracle.time_check(cipherText) > decisionThreshold
 
 
 def gen_str(lengt_index: int) -> bytes:
@@ -109,6 +110,7 @@ def str_fuzzing(text: bytes) -> bytes:
 
 
 def generate_interval(private_key: rsa.RSAPrivateKey) -> float:
+
     """
     Generate interval for side chanel attack
     Args:
@@ -208,4 +210,4 @@ def generate_interval(private_key: rsa.RSAPrivateKey) -> float:
     plt.savefig("unvalid_log_double.png", dpi=300)
     distance = invalidMean + (validPad[0] - invalidMean) * 2 / 3
     print(f"Distance: {distance}")
-    return invalidMean
+    return distance
