@@ -120,7 +120,7 @@ def generatePKCSThresholdhold(oracle: oracle.Oracle) -> float:
     byte_text = b"OMG, super secret message, please don't hack me!"
 
     # Start loop
-    j = 2000000
+    j = 200000
     print(f"testing for {j} iterations")
     counter = 0
     for i in range(j):

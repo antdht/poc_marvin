@@ -18,10 +18,10 @@ class Oracle:
                 ),
             )
 
-            self._pk = cast(rsa.RSAPublicKey, self._sk.public_key())
         else:
             self._sk = privateKey
-            self._pk = privateKey.public_key()
+
+        self._pk = cast(rsa.RSAPublicKey, self._sk.public_key())
 
     def getPublicKey(self) -> rsa.RSAPublicKey:
         """
