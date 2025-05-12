@@ -1,5 +1,3 @@
-from typing import cast
-from cryptography.hazmat.primitives.asymmetric import rsa
 from random import randint
 import matplotlib.pyplot as plt
 import numpy as np
@@ -109,22 +107,20 @@ def str_fuzzing(text: bytes) -> bytes:
     return text
 
 
-def generate_interval(private_key: rsa.RSAPrivateKey) -> float:
-
+def generatePKCSThresholdhold(oracle: oracle.Oracle) -> float:
     """
     Generate interval for side chanel attack
     Args:
-        publicKey: RSAPublicKey for encrypting cyphertexts
-        original_plain: the plain we are attacking, we will random fuzze
+        oracle: The oracle on which to generate the interval.
     Returns:
-        Intervals of true and false
+        The threshold to classify a ciphertext as PKCS conforming or not PKCS conforming.
     """
     # Setting up the fuzzer
 
     validPad = []
     invalidPad = []
-    byte_text = b"hello"
-    publicKey = cast(rsa.RSAPublicKey, private_key.public_key())
+    byte_text = b"OMG, super secret message, please don't hack me!"
+
     # Start loop
     j = 2000000
     print(f"testing for {j} iterations")
@@ -133,14 +129,14 @@ def generate_interval(private_key: rsa.RSAPrivateKey) -> float:
         if i == (j // 28) * counter:
             counter += 1
             byte_text = gen_str(counter)
-            print(f"We reached {i/j*100:0,.2f}%")
+            print(f"We reached {i / j * 100:0,.2f}%")
 
         byte_text = str_fuzzing(byte_text)
-        ciphertext = rsaTools.encrypt(byte_text, publicKey)
+        ciphertext = oracle.encrypt(byte_text)
         validPad.append(
             min(
-                oracle_time_check(ciphertext, private_key),
-                oracle_time_check(ciphertext, private_key),
+                oracle.time_check(ciphertext),
+                oracle.time_check(ciphertext),
             )
         )
 
@@ -148,8 +144,8 @@ def generate_interval(private_key: rsa.RSAPrivateKey) -> float:
             invalidCipher = ciphertext[1:]
             invalidPad.append(
                 min(
-                    oracle_time_check(invalidCipher, private_key),
-                    oracle_time_check(invalidCipher, private_key),
+                    oracle.time_check(invalidCipher),
+                    oracle.time_check(invalidCipher),
                 )
             )
 
@@ -158,16 +154,16 @@ def generate_interval(private_key: rsa.RSAPrivateKey) -> float:
             invalidCipher = b"\x10\x10" + invalidCipher[:2]
             invalidPad.append(
                 min(
-                    oracle_time_check(invalidCipher, private_key),
-                    oracle_time_check(invalidCipher, private_key),
+                    oracle.time_check(invalidCipher),
+                    oracle.time_check(invalidCipher),
                 )
             )
         else:
             invalidCipher = ciphertext[1:]
             invalidPad.append(
                 min(
-                    oracle_time_check(invalidCipher, private_key),
-                    oracle_time_check(invalidCipher, private_key),
+                    oracle.time_check(invalidCipher),
+                    oracle.time_check(invalidCipher),
                 )
             )
 
