@@ -22,6 +22,48 @@ def isPKCSConforming(
     return oracle.time_check(cipherText) > decisionThreshold
 
 
+def gen_str(lengt_index: int) -> bytes:
+    """
+    Generate a string encoded into bytes
+    Args:
+        lengt_index: the lengt (this value will be multiply by 4)
+    Returns:
+        an encoded str
+    """
+    primes = [
+        101,
+        103,
+        107,
+        109,
+        113,
+        127,
+        131,
+        137,
+        139,
+        149,
+        151,
+        157,
+        163,
+        167,
+        173,
+        179,
+        181,
+        191,
+        193,
+        197,
+    ]
+
+    charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    chars_mod = len(charset)
+    message = ""
+
+    for _ in range(lengt_index * 4):
+        base = primes[randint(0, len(primes) - 1)]
+        exp = randint(2, 3)
+        message += charset[pow(base, exp, chars_mod)]
+    return message.encode()
+
+
 def str_fuzzing(text: bytes) -> bytes:
     """
     Fuzz the input bytes by randomly modifying a few characters.
@@ -67,7 +109,8 @@ def str_fuzzing(text: bytes) -> bytes:
     return text
 
 
-def generate_interval(oracle: rsa.RSAPrivateKey, original_plain: str) -> float:
+def generate_interval(private_key: rsa.RSAPrivateKey) -> float:
+
     """
     Generate interval for side chanel attack
     Args:
@@ -80,14 +123,20 @@ def generate_interval(oracle: rsa.RSAPrivateKey, original_plain: str) -> float:
 
     validPad = []
     invalidPad = []
-    byte_text = original_plain.encode()
+    byte_text = b"hello"
     publicKey = cast(rsa.RSAPublicKey, private_key.public_key())
     # Start loop
     j = 2000000
     print(f"testing for {j} iterations")
+    counter = 0
     for i in range(j):
-        fuzzed_byte_text = str_fuzzing(byte_text)
-        ciphertext = rsaTools.encrypt(fuzzed_byte_text, publicKey)
+        if i == (j // 28) * counter:
+            counter += 1
+            byte_text = gen_str(counter)
+            print(f"We reached {i/j*100:0,.2f}%")
+
+        byte_text = str_fuzzing(byte_text)
+        ciphertext = rsaTools.encrypt(byte_text, publicKey)
         validPad.append(
             min(
                 oracle_time_check(ciphertext, private_key),
@@ -95,7 +144,7 @@ def generate_interval(oracle: rsa.RSAPrivateKey, original_plain: str) -> float:
             )
         )
 
-        if i < j // 3:
+        if i % 3:
             invalidCipher = ciphertext[1:]
             invalidPad.append(
                 min(
@@ -104,7 +153,7 @@ def generate_interval(oracle: rsa.RSAPrivateKey, original_plain: str) -> float:
                 )
             )
 
-        elif i < 2 * j // 3:
+        elif (i + 1) % 3:
             invalidCipher = ciphertext
             invalidCipher = b"\x10\x10" + invalidCipher[:2]
             invalidPad.append(
