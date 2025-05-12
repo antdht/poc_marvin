@@ -1,6 +1,4 @@
 from random import randint
-import matplotlib.pyplot as plt
-import numpy as np
 import oracle
 
 
@@ -167,43 +165,8 @@ def generatePKCSThresholdhold(oracle: oracle.Oracle) -> float:
                 )
             )
 
-    print("Valid padding records:")
-    validPad.sort()
-    validSize = len(validPad)
-    validMean = sum(validPad) / validSize
-    print(
-        f"Smallest: {validPad[0]}\nMedian: {validPad[validSize // 2]}\nLargest: {validPad[-2]}\nMean: {validMean}\n"
-    )
-
-    counts, bin_edges = np.histogram(
-        validPad, bins=100, range=(validPad[0], validPad[-1])
-    )
-    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-    plt.plot(bin_centers, counts, linestyle="-", marker="", color="blue")
-    plt.yscale("log")
-    plt.title("Log-Scale Distribution (Line Plot)")
-    plt.xlabel("Value")
-    plt.ylabel("Frequency (log scale)")
-    plt.savefig("valid_log_double.png", dpi=300)
-    plt.clf()
-
-    print("Invalid padding records:")
     invalidPad.sort()
     invalidSize = len(invalidPad)
     invalidMean = sum(invalidPad) / invalidSize
-    print(
-        f"Smallest: {invalidPad[0]}\nMedian: {invalidPad[invalidSize // 2]}\nLargest: {invalidPad[-2]}\nMean: {invalidMean}\n"
-    )
-    counts2, bin_edges2 = np.histogram(
-        invalidPad, bins=100, range=(invalidPad[0], invalidPad[-1])
-    )
-    bin_centers2 = (bin_edges2[:-1] + bin_edges2[1:]) / 2
-    plt.plot(bin_centers2, counts2, linestyle="-", marker="", color="blue")
-    plt.yscale("log")
-    plt.title("Log-Scale Distribution (Line Plot)")
-    plt.xlabel("Value")
-    plt.ylabel("Frequency (log scale)")
-    plt.savefig("unvalid_log_double.png", dpi=300)
     distance = invalidMean + (validPad[0] - invalidMean) * 2 / 3
-    print(f"Distance: {distance}")
     return distance
