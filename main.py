@@ -1,27 +1,11 @@
 from numpy import ceil, floor
-import rsaTools
+import oracle
+import utils
 from cryptography.hazmat.primitives.asymmetric import rsa
 from typing import cast
 
-import utils
 
-
-def isPKCSConforming(
-    cipherText: bytes, private_key: rsa.RSAPrivateKey, decisionThreshold: float
-) -> bool:
-    """
-    Check if the ciphertext is PKCS conforming.
-    Args:
-        cipherText: The ciphertext to check.
-        private_key: The private key used to call the oracle on decryption.
-    Returns:
-        True if the ciphertext is PKCS conforming, False otherwise.
-    """
-    # Takes longer than threshold -> PKCS conforming (no error raised)
-    return utils.oracle_time_check(cipherText, private_key) > decisionThreshold
-
-
-def marvin_break(cipherText: bytes, private_key: rsa.RSAPrivateKey):
+def marvin_break(cipherText: bytes, oracle: oracle.Oracle):
     """
     Marvin's attack on RSA PKCS#1 v1.5 padding.
     Args:
@@ -30,7 +14,7 @@ def marvin_break(cipherText: bytes, private_key: rsa.RSAPrivateKey):
     Returns:
         The decrypted message.
     """
-    public_key = cast(rsa.RSAPublicKey, private_key.public_key())
+    public_key = oracle.getPublicKey()
     public_numbers = cast(rsa.RSAPublicNumbers, public_key.public_numbers())
     n = public_numbers.n
     e = public_numbers.e
@@ -47,14 +31,14 @@ def marvin_break(cipherText: bytes, private_key: rsa.RSAPrivateKey):
             s = ceil(n / (3 * B))
             while True:
                 craftedCipher = (cipherText * (s**e)) % n
-                if isPKCSConforming(craftedCipher, private_key, decisionThreshold):
+                if utils.isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                     break
                 s += 1
         elif len(M) > 1:
             s += 1
             while True:
                 craftedCipher = (cipherText * (s**e)) % n
-                if isPKCSConforming(craftedCipher, private_key, decisionThreshold):
+                if utils.isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                     break
                 s += 1
         else:
@@ -67,7 +51,7 @@ def marvin_break(cipherText: bytes, private_key: rsa.RSAPrivateKey):
                 s = s_min
                 while s <= s_max:
                     craftedCipher = (cipherText * (s**e)) % n
-                    if isPKCSConforming(craftedCipher, private_key, decisionThreshold):
+                    if utils.isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                         found = True
                         break
                     s += 1
@@ -82,14 +66,16 @@ def marvin_break(cipherText: bytes, private_key: rsa.RSAPrivateKey):
         for a, b in M:
             r_min = ceil((a * s - 3 * B + 1) / n)
             r_max = floor((b * s - 2 * B) / n)
+            new_a = a
+            new_b = b
             for r in range(r_min, r_max + 1):
-                new_a = max(a, ceil((2 * B + r * n) / s))
-                new_b = min(b, floor((3 * B - 1 + r * n) / s))
+                new_a = max(new_a, ceil((2 * B + r * n) / s))
+                new_b = min(new_b, floor((3 * B - 1 + r * n) / s))
                 if new_a <= new_b:
                     newM.append((new_a, new_b))
         M = newM
     if M[0][0] == M[0][1]:
-        m = (M[0][0] * pow(s, -1, n)) % n
+        dirty_m = (M[0][0] * pow(s, -1, n)) % n
         # TODO: Implement the rest of the decryption process
         # We can in a first time compare m's bytes with the original message's bytes
 
@@ -97,10 +83,3 @@ def marvin_break(cipherText: bytes, private_key: rsa.RSAPrivateKey):
         return "decrypted message"  # Placeholder for the decrypted message
     else:
         i += 1
-
-
-if __name__ == "__main__":
-    # --- CONFIG ---
-    MESSAGE = "Hello, RSA-secured server!"
-    private_key, public_key = rsaTools.generateRSAKeyPair()
-    cipher = rsaTools.encrypt(MESSAGE.encode(), public_key)
