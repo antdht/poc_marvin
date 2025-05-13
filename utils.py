@@ -15,10 +15,13 @@ def isPKCSConforming(
         True if the ciphertext is PKCS conforming, False otherwise.
     """
     # Takes longer than threshold -> PKCS conforming (no error raised)
-    return oracle.time_check(cipherText) > decisionThreshold
+    return (
+        min(oracle.time_check(cipherText), oracle.time_check(cipherText))
+        > decisionThreshold
+    )
 
 
-def ceilDiv(a: int, b: int) -> int:
+def ceilDiv(a, b):
     """
     Calculate the ceiling of the division of a by b.
     Args:
@@ -30,7 +33,7 @@ def ceilDiv(a: int, b: int) -> int:
     return -(-a // b)  # Equivalent to numpy.ceil(a / b)
 
 
-def floorDiv(a: int, b: int) -> int:
+def floorDiv(a, b):
     """
     Calculate the floor of the division of a by b.
     Args:
@@ -144,7 +147,7 @@ def generatePKCSThresholdhold(oracle: oracle.Oracle) -> float:
     byte_text = b"OMG, super secret message, please don't hack me!"
 
     # Start loop
-    j = 200000
+    j = 20000
     print(f"testing for {j} iterations")
     counter = 0
     for i in range(j):
