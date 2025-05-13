@@ -1,10 +1,9 @@
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-from numpy import ceil, floor
 from typing import cast
 
 import oracle
-import utils
+from utils import ceilDiv, floorDiv, isPKCSConforming
 
 
 def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
@@ -22,6 +21,7 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
     e = public_numbers.e
     B = 2 ** (8 * ((n.bit_length() + 7) // 8) - 2)
     M = [(2 * B, 3 * B - 1)]  # List of tuples (intervals)
+    print("first M size:", len(M))
 
     c = int.from_bytes(ciphertext, byteorder="big")
 
@@ -35,10 +35,10 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
         if i == 1:
             print("First iteration")
             # First iteration
-            s = ceil(n / (3 * B))
+            s = ceilDiv(n, (3 * B))
             while True:
                 craftedCipher = (c * (s**e)) % n
-                if utils.isPKCSConforming(craftedCipher, oracle, decisionThreshold):
+                if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                     break
                 s += 1
         elif len(M) > 1:
@@ -46,21 +46,21 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
             s += 1
             while True:
                 craftedCipher = (c * (s**e)) % n
-                if utils.isPKCSConforming(craftedCipher, oracle, decisionThreshold):
+                if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                     break
                 s += 1
         else:
             print("one interval left")
             found = False
             (a, b) = M[0]
-            r = ceil(2 * (b * s - 2 * B) / n)
+            r = ceilDiv(2 * (b * s - 2 * B), n)
             while True:
-                s_min = ceil((2 * B + r * n) / b)
-                s_max = ceil((3 * B + r * n) / a)
+                s_min = ceilDiv((2 * B + r * n), b)
+                s_max = ceilDiv((3 * B + r * n), a)
                 s = s_min
                 while s <= s_max:
                     craftedCipher = (c * (s**e)) % n
-                    if utils.isPKCSConforming(craftedCipher, oracle, decisionThreshold):
+                    if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                         found = True
                         print("found a solution")
                         break
@@ -76,17 +76,18 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
         print("Narrowing down the set of solutions")
         for a, b in M:
             print("n:", n, "\ns:", s, "\na:", a, "\nb:", b)
-            r_min = (a * s - 3 * B + 1) // n
+            r_min = ceilDiv((a * s - 3 * B + 1), n)
             print("numerator:", (a * s - 3 * B + 1))
             print("\n\nrmin:", r_min)
-            r_max = -(-(b * s - 2 * B) // n)
+            r_max = floorDiv((b * s - 2 * B), n)
             new_a = a
             new_b = b
             for r in range(r_min, r_max + 1):
-                new_a = max(new_a, ceil((2 * B + r * n) / s))
-                new_b = min(new_b, floor((3 * B - 1 + r * n) / s))
+                new_a = max(new_a, ceilDiv((2 * B + r * n), s))
+                new_b = min(new_b, floorDiv((3 * B - 1 + r * n), s))
                 if new_a <= new_b:
                     newM.append((new_a, new_b))
+        print("newM size:", len(newM))
         M = newM
     if M[0][0] == M[0][1]:
         dirty_m = (M[0][0] * pow(s, -1, n)) % n

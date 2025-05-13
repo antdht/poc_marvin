@@ -18,6 +18,30 @@ def isPKCSConforming(
     return oracle.time_check(cipherText) > decisionThreshold
 
 
+def ceilDiv(a: int, b: int) -> int:
+    """
+    Calculate the ceiling of the division of a by b.
+    Args:
+        a: The numerator.
+        b: The denominator.
+    Returns:
+        The ceiling of the division.
+    """
+    return -(-a // b)  # Equivalent to numpy.ceil(a / b)
+
+
+def floorDiv(a: int, b: int) -> int:
+    """
+    Calculate the floor of the division of a by b.
+    Args:
+        a: The numerator.
+        b: The denominator.
+    Returns:
+        The floor of the division.
+    """
+    return a // b  # Equivalent to numpy.floor(a / b)
+
+
 def gen_str(lengt_index: int) -> bytes:
     """
     Generate a string encoded into bytes
