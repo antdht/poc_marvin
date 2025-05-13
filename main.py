@@ -4,7 +4,7 @@ from typing import cast
 import portion as P
 
 import oracle
-from utils import ceilDiv, floorDiv, isPKCSConforming, generatePKCSThresholdhold
+from utils import ceilDiv, floorDiv, isPKCSConforming
 
 
 def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
@@ -25,8 +25,8 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
 
     c = int.from_bytes(ciphertext, byteorder="big")
 
-    decisionThreshold = generatePKCSThresholdhold(oracle)
-    # decisionThreshold = 70000
+    # decisionThreshold = generatePKCSThresholdhold(oracle)
+    decisionThreshold = 55000
     print("decisionThreshold:", decisionThreshold)
 
     i = 1
@@ -37,9 +37,9 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
             # First iteration
             s = ceilDiv(n, (3 * B))
             while True:
-                print("s:", s)
-                craftedCipher = (c * (s**e)) % n
+                craftedCipher = (c * pow(s, e, n)) % n
                 if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
+                    print("s:", s)
                     break
                 s += 1
         elif len(M) > 1:
@@ -47,7 +47,7 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
             s += 1
             while True:
                 print("s:", s)
-                craftedCipher = (c * (s**e)) % n
+                craftedCipher = (c * pow(s, e, n)) % n
                 if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                     break
                 s += 1
@@ -62,7 +62,7 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
                 s_max = ceilDiv((3 * B + r * n), a)
                 s = s_min
                 while s <= s_max:
-                    craftedCipher = (c * (s**e)) % n
+                    craftedCipher = (c * pow(s, e, n)) % n
                     if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                         found = True
                         print("found a solution")
@@ -89,6 +89,7 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
                 # NOTE: This verif should be useless if my math's understanding is correct
                 if new_a <= new_b:
                     newM = newM | P.closed(new_a, new_b)
+        print("newM size:", len(newM))
         M = newM
         i += 1
 
@@ -105,10 +106,10 @@ if __name__ == "__main__":
     sk = cast(
         rsa.RSAPrivateKey,
         rsa.generate_private_key(
-            public_exponent=65537, key_size=1024, backend=default_backend()
+            public_exponent=65537, key_size=512, backend=default_backend()
         ),
     )
 
     oracle_instance = oracle.Oracle(sk)
-    ciphertext = b"Private message lol"
+    ciphertext = b"Private"
     marvin_break(ciphertext, oracle_instance)

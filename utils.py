@@ -3,22 +3,22 @@ import oracle
 
 
 def isPKCSConforming(
-    cipherText: bytes, oracle: oracle.Oracle, decisionThreshold: float
+    cipherText: int, oracle: oracle.Oracle, decisionThreshold: float
 ) -> bool:
     """
     Check if the ciphertext is PKCS conforming.
     Args:
-        cipherText: The ciphertext to check.
+        cipherText: The ciphertext to check converted to integer.
         oracle: The oracle object used to check the ciphertext.
         decisionThreshold: The threshold for deciding if the ciphertext is PKCS conforming.
     Returns:
         True if the ciphertext is PKCS conforming, False otherwise.
     """
     # Takes longer than threshold -> PKCS conforming (no error raised)
-    return (
-        min(oracle.time_check(cipherText), oracle.time_check(cipherText))
-        > decisionThreshold
-    )
+    c = cipherText.to_bytes((cipherText.bit_length() + 7) // 8, byteorder="big")
+    a = oracle.time_check(c)
+    b = oracle.time_check(c)
+    return min(a, b) > decisionThreshold
 
 
 def ceilDiv(a, b):
