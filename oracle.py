@@ -62,5 +62,4 @@ class Oracle:
         """
         start = time.monotonic_ns()
         self.decrypt(ciphertext)
-        diff = time.monotonic_ns() - start
-        return diff
+        return time.monotonic_ns() - start

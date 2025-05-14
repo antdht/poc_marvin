@@ -21,7 +21,7 @@ def isPKCSConforming(
     return min(a, b) > decisionThreshold
 
 
-def ceilDiv(a, b):
+def ceilDiv(a: int, b: int) -> int:
     """
     Calculate the ceiling of the division of a by b.
     Args:
@@ -33,7 +33,7 @@ def ceilDiv(a, b):
     return -(-a // b)  # Equivalent to numpy.ceil(a / b)
 
 
-def floorDiv(a, b):
+def floorDiv(a: int, b: int) -> int:
     """
     Calculate the floor of the division of a by b.
     Args:

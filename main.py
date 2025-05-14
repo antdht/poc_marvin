@@ -29,25 +29,24 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
     # decisionThreshold = 55000
     print("decisionThreshold:", decisionThreshold)
 
-    i = 1
     s = 1
-    while M[0].lower != M[0].upper:
+    i = 1
+    craftedCipher = (c * pow(s, e, n)) % n
+    while M.lower != M.upper:
         if i == 1:
             print("First iteration")
             # First iteration
             s = ceilDiv(n, (3 * B))
             while True:
-                craftedCipher = (c * pow(s, e, n)) % n
+                craftedCipher = (craftedCipher * pow(s, e, n)) % n
                 if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
-                    print("s:", s)
                     break
                 s += 1
         elif len(M) > 1:
             print("M > 1")
             s += 1
             while True:
-                print("s:", s)
-                craftedCipher = (c * pow(s, e, n)) % n
+                craftedCipher = (craftedCipher * pow(s, e, n)) % n
                 if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                     break
                 s += 1
@@ -61,11 +60,10 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
                 s_min = ceilDiv((2 * B + r * n), b)
                 s_max = ceilDiv((3 * B + r * n), a)
                 s = s_min
-                while s <= s_max:
-                    craftedCipher = (c * pow(s, e, n)) % n
+                while s < s_max:
+                    craftedCipher = (craftedCipher * pow(s, e, n)) % n
                     if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                         found = True
-                        print("found a solution")
                         break
                     s += 1
                 if found:
@@ -74,37 +72,41 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
 
         # Narrowing down the set of solutions
         newM = P.empty()
-        print("Narrowing down the set of solutions")
+        r_min = 0
+        r_max = 0
         for subInterval in M:
             a = cast(int, subInterval.lower)
             b = cast(int, subInterval.upper)
             r_min = ceilDiv((a * s - 3 * B + 1), n)
             r_max = floorDiv((b * s - 2 * B), n)
-            new_a = a
-            new_b = b
             for r in range(r_min, r_max + 1):
-                new_a = max(new_a, ceilDiv((2 * B + r * n), s))
-                new_b = min(new_b, floorDiv((3 * B - 1 + r * n), s))
+                new_a = max(a, ceilDiv((2 * B + r * n), s))
+                new_b = min(b, floorDiv((3 * B - 1 + r * n), s))
 
                 # NOTE: This verif should be useless if my math's understanding is correct
-                if new_a <= new_b:
-                    newM = newM | P.closed(new_a, new_b)
-        print("newM size:", len(newM))
+
+                # if new_a <= new_b:
+                newM = newM | P.closed(new_a, new_b)
+        if len(newM) != 1:
+            print("newM size:", len(newM))
+            print("newM:", newM)
+            print(f"r_min: {r_min}, r_max: {r_max}")
         M = newM
         i += 1
 
-    dirty_m = (M[0].lower * pow(s, -1, n)) % n
-    print("s:", s)
-    print("n:", n)
-    print("M[0]: ", M[0])
+    dirty_m = (M[0].lower * pow(1, -1, n)) % n
+    print(f"M: {M}")
+    # print("s:", s)
+    # print("n:", n)
+    # print("M[0]: ", M[0])
     print(
-        "M[0] lower: ",
-        M[0].lower.to_bytes((M[0].lower.bit_length() + 7) // 8, byteorder="big"),
+        "dirty_m (bytes): ",
+        dirty_m.to_bytes((dirty_m.bit_length() + 7) // 8, byteorder="big"),
     )
     # TODO: Implement the rest of the decryption process
     # We can in a first time compare m's bytes with the original message's bytes
 
-    print("dirty decrypted message:", dirty_m)
+    print("dirty_m decrypted message (INT): ", dirty_m)
     return "decrypted message"  # Placeholder for the decrypted message
 
 
@@ -118,5 +120,5 @@ if __name__ == "__main__":
     )
 
     oracle_instance = oracle.Oracle(sk)
-    ciphertext = b"Private"
+    ciphertext = oracle_instance.encrypt(b"Private")
     marvin_break(ciphertext, oracle_instance)
