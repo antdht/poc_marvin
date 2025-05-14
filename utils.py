@@ -151,7 +151,7 @@ def generatePKCSThresholdhold(oracle: oracle.Oracle) -> float:
     print(f"testing for {j} iterations")
     counter = 0
     for i in range(j):
-        if i == (j // 28) * counter:
+        if i == (j // 10) * counter:
             counter += 1
             byte_text = gen_str(counter)
             print(f"We reached {i / j * 100:0,.2f}%")
@@ -192,6 +192,7 @@ def generatePKCSThresholdhold(oracle: oracle.Oracle) -> float:
                 )
             )
 
+    validPad.sort()
     invalidPad.sort()
     invalidSize = len(invalidPad)
     invalidMean = sum(invalidPad) / invalidSize

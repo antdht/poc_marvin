@@ -4,7 +4,7 @@ from typing import cast
 import portion as P
 
 import oracle
-from utils import ceilDiv, floorDiv, isPKCSConforming
+from utils import ceilDiv, floorDiv, isPKCSConforming, generatePKCSThresholdhold
 
 
 def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
@@ -25,8 +25,8 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
 
     c = int.from_bytes(ciphertext, byteorder="big")
 
-    # decisionThreshold = generatePKCSThresholdhold(oracle)
-    decisionThreshold = 55000
+    decisionThreshold = generatePKCSThresholdhold(oracle)
+    # decisionThreshold = 55000
     print("decisionThreshold:", decisionThreshold)
 
     i = 1
@@ -94,6 +94,13 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
         i += 1
 
     dirty_m = (M[0].lower * pow(s, -1, n)) % n
+    print("s:", s)
+    print("n:", n)
+    print("M[0]: ", M[0])
+    print(
+        "M[0] lower: ",
+        M[0].lower.to_bytes((M[0].lower.bit_length() + 7) // 8, byteorder="big"),
+    )
     # TODO: Implement the rest of the decryption process
     # We can in a first time compare m's bytes with the original message's bytes
 
