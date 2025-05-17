@@ -41,6 +41,21 @@ class Oracle:
         except:
             pass
 
+    def cheatDecrypt(self, ciphertext: bytes) -> bool:
+        """
+        Decrypts the given ciphertext using the private key and returns True if successful.
+
+        Args:
+            ciphertext (bytes): The ciphertext to decrypt.
+        Returns:
+            bool: True if decryption was successful, False otherwise.
+        """
+        try:
+            self._sk.decrypt(ciphertext, padding.PKCS1v15())
+            return True
+        except:
+            return False
+
     def encrypt(self, plaintext: bytes) -> bytes:
         """
         Encrypts the given plaintext using the public key.

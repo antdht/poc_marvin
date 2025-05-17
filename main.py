@@ -4,7 +4,7 @@ from typing import cast
 import portion as P
 
 import oracle
-from utils import ceilDiv, floorDiv, isPKCSConforming, generatePKCSThresholdhold
+from utils import ceilDiv, floorDiv, isPKCSConforming
 
 
 def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
@@ -25,8 +25,8 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
 
     c = int.from_bytes(ciphertext, byteorder="big")
 
-    decisionThreshold = generatePKCSThresholdhold(oracle)
-    # decisionThreshold = 55000
+    # decisionThreshold = generatePKCSThresholdhold(oracle)
+    decisionThreshold = 55000
     print("decisionThreshold:", decisionThreshold)
 
     s = 1
@@ -71,6 +71,7 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
                 r += 1
 
         # Narrowing down the set of solutions
+        print(f"s: {s}")
         newM = P.empty()
         r_min = 0
         r_max = 0
@@ -89,8 +90,12 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
                 newM = newM | P.closed(new_a, new_b)
         if len(newM) != 1:
             print("newM size:", len(newM))
-            print("newM:", newM)
-            print(f"r_min: {r_min}, r_max: {r_max}")
+            # print("newM:", newM)
+            # print(f"r_min: {r_min}, r_max: {r_max}")
+        else:
+            x = cast(int, M[0].lower)
+            y = cast(int, M[0].upper)
+            print(f"range: {y - x}")
         M = newM
         i += 1
 

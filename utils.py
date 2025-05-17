@@ -15,10 +15,12 @@ def isPKCSConforming(
         True if the ciphertext is PKCS conforming, False otherwise.
     """
     # Takes longer than threshold -> PKCS conforming (no error raised)
+
     c = cipherText.to_bytes((cipherText.bit_length() + 7) // 8, byteorder="big")
-    a = oracle.time_check(c)
-    b = oracle.time_check(c)
-    return min(a, b) > decisionThreshold
+    # a = oracle.time_check(c)
+    # b = oracle.time_check(c)
+    # return min(a, b) > decisionThreshold
+    return oracle.cheatDecrypt(c)
 
 
 def ceilDiv(a: int, b: int) -> int:
