@@ -31,14 +31,13 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
 
     s = 1
     i = 1
-    craftedCipher = (c * pow(s, e, n)) % n
     while M.lower != M.upper:
         if i == 1:
             print("First iteration")
             # First iteration
             s = ceilDiv(n, (3 * B))
             while True:
-                craftedCipher = (craftedCipher * pow(s, e, n)) % n
+                craftedCipher = (c * pow(s, e, n)) % n
                 if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                     break
                 s += 1
@@ -46,7 +45,7 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
             print("M > 1")
             s += 1
             while True:
-                craftedCipher = (craftedCipher * pow(s, e, n)) % n
+                craftedCipher = (c * pow(s, e, n)) % n
                 if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                     break
                 s += 1
@@ -61,7 +60,7 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
                 s_max = ceilDiv((3 * B + r * n), a)
                 s = s_min
                 while s < s_max:
-                    craftedCipher = (craftedCipher * pow(s, e, n)) % n
+                    craftedCipher = (c * pow(s, e, n)) % n
                     if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                         found = True
                         break
@@ -99,20 +98,17 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
         M = newM
         i += 1
 
-    dirty_m = (M[0].lower * pow(1, -1, n)) % n
-    print(f"M: {M}")
-    # print("s:", s)
-    # print("n:", n)
-    # print("M[0]: ", M[0])
-    print(
-        "dirty_m (bytes): ",
-        dirty_m.to_bytes((dirty_m.bit_length() + 7) // 8, byteorder="big"),
-    )
-    # TODO: Implement the rest of the decryption process
-    # We can in a first time compare m's bytes with the original message's bytes
+    a = cast(int, M.lower)
+    m = (a * pow(s, -1, n)) % n
+    m_bytes = m.to_bytes((n.bit_length() + 7) // 8, byteorder="big")
 
-    print("dirty_m decrypted message (INT): ", dirty_m)
-    return "decrypted message"  # Placeholder for the decrypted message
+    if not m_bytes.startswith(b"\x00\x02"):
+        print("Warning: invalid padding:", m_bytes[:10].hex())
+
+    sep = m_bytes.find(b"\x00", 2)
+    assert sep != -1, "Invalid PKCS#1 v1.5 padding structure"
+    plaintext = m_bytes[sep + 1 :]
+    return plaintext
 
 
 if __name__ == "__main__":
