@@ -1,3 +1,4 @@
+from collections import namedtuple
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from typing import cast
@@ -5,6 +6,30 @@ import portion as P
 
 import oracle
 from utils import ceilDiv, floorDiv, isPKCSConforming
+
+
+Interval = namedtuple("Interval", ["lower_bound", "upper_bound"])
+
+
+def safe_interval_insert(M_new: list, interval: Interval):
+    """
+    Deal with interval overlaps when adding a new one to the list
+    """
+
+    for i, (a, b) in enumerate(M_new):
+
+        # overlap found, construct the larger interval
+        if (b >= interval.lower_bound) and (a <= interval.upper_bound):
+            lb = min(a, interval.lower_bound)
+            ub = max(b, interval.upper_bound)
+
+            M_new[i] = Interval(lb, ub)
+            return M_new
+
+    # no overlaps found, just insert the new interval
+    M_new.append(interval)
+
+    return M_new
 
 
 def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
@@ -21,7 +46,7 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
     n = public_numbers.n
     e = public_numbers.e
     B = 2 ** (8 * ((n.bit_length() + 7) // 8) - 2)
-    M = P.closed(2 * B, 3 * B - 1)
+    M = [(2 * B, 3 * B - 1)]
 
     c = int.from_bytes(ciphertext, byteorder="big")
 
@@ -31,7 +56,7 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
 
     s = 1
     i = 1
-    while M.lower != M.upper:
+    while True:
         if i == 1:
             print("First iteration")
             # First iteration
@@ -52,8 +77,8 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
         else:
             print("one interval left")
             found = False
-            a = cast(int, M[0].lower)
-            b = cast(int, M[0].upper)
+            a = cast(int, M[0][0])
+            b = cast(int, M[0][1])
             r = ceilDiv(2 * (b * s - 2 * B), n)
             while True:
                 s_min = ceilDiv((2 * B + r * n), b)
@@ -71,12 +96,10 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
 
         # Narrowing down the set of solutions
         print(f"s: {s}")
-        newM = P.empty()
+        newM = []
         r_min = 0
         r_max = 0
-        for subInterval in M:
-            a = cast(int, subInterval.lower)
-            b = cast(int, subInterval.upper)
+        for a, b in M:
             r_min = ceilDiv((a * s - 3 * B + 1), n)
             r_max = floorDiv((b * s - 2 * B), n)
             for r in range(r_min, r_max + 1):
@@ -86,19 +109,22 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
                 # NOTE: This verif should be useless if my math's understanding is correct
 
                 # if new_a <= new_b:
-                newM = newM | P.closed(new_a, new_b)
+                interval = Interval(new_a, new_b)
+                newM = safe_interval_insert(newM, interval)
         if len(newM) != 1:
             print("newM size:", len(newM))
             # print("newM:", newM)
             # print(f"r_min: {r_min}, r_max: {r_max}")
         else:
-            x = cast(int, M[0].lower)
-            y = cast(int, M[0].upper)
+            x = cast(int, M[0][0])
+            y = cast(int, M[0][1])
             print(f"range: {y - x}")
         M = newM
+        if len(M) == 1 and M[0][0] == M[0][1]:
+            break
         i += 1
 
-    a = cast(int, M.lower)
+    a = cast(int, M[0][0])
     m = (a * pow(s, -1, n)) % n
     m_bytes = m.to_bytes((n.bit_length() + 7) // 8, byteorder="big")
     m = a % n
