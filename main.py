@@ -101,7 +101,12 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
     a = cast(int, M.lower)
     m = (a * pow(s, -1, n)) % n
     m_bytes = m.to_bytes((n.bit_length() + 7) // 8, byteorder="big")
-
+    m = a % n
+    am_bytes = m.to_bytes((n.bit_length() + 7) // 8, byteorder="big")
+    print("n:", n)
+    print("a:", a)
+    print("m_bytes:", m_bytes)
+    print("alterned m_bytes:", am_bytes)
     if not m_bytes.startswith(b"\x00\x02"):
         print("Warning: invalid padding:", m_bytes[:10].hex())
 
