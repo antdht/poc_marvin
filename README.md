@@ -4,6 +4,8 @@ This repository contains a **proof of concept** (PoC) for the **Bleichenbacher a
 
 The Bleichenbacher attack targets RSA encryption implementations that are vulnerable to **padding oracle attacks**, allowing attackers to decrypt ciphertexts without access to the private key. This PoC demonstrates the feasibility of such an attack targetting the python library `pyca/cryptography` in version 3.1.1.
 
+The project was originally intended to demonstrate a Marvin attack, a modern variation of Bleichenbacher's padding oracle attack that leverages side-channel information (such as timing differences). However, due to the time constraints and the complexity of implementing accurate side-channel measurements, the focus was shifted to a more classic Bleichenbacher approach using a simulated padding oracle.
+
 ## Authors
 
 * **Bajraktari Eron** (516414)
@@ -15,7 +17,7 @@ The Bleichenbacher attack targets RSA encryption implementations that are vulner
 ## Project Structure
 
 ```
-bleichenbacher-poc/
+poc-marvin/
 ├── src/                  # Source code of the attack
 ├── requirements.txt      # Python dependencies
 ├── README.md             
