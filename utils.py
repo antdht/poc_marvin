@@ -19,6 +19,21 @@ def bytes_to_integer(bytes):
     return int.from_bytes(bytes, byteorder="big")
 
 
+def PKCS1_decode(encoded: bytes):
+    """
+    Decodes a PKCS1 v1.5 string.
+    Remove constant bytes and random pad until arriving at "\x00".
+    The rest is the message.
+    """
+
+    encoded = encoded[2:]
+    idx = encoded.index(b"\x00")
+
+    message = encoded[idx + 1 :]
+
+    return message
+
+
 def isPKCSConforming(
     cipherText: int, oracle: oracle.Oracle, decisionThreshold: float
 ) -> bool:
