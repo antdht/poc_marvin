@@ -1,6 +1,5 @@
 from random import randint
 
-from portion import interval
 import oracle
 
 
