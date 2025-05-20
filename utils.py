@@ -1,5 +1,22 @@
 from random import randint
+
+from portion import interval
 import oracle
+
+
+def integer_to_bytes(integer):
+    k = integer.bit_length()
+
+    # adjust number of bytes
+    bytes_length = k // 8 + (k % 8 > 0)
+
+    bytes_obj = integer.to_bytes(bytes_length, byteorder="big")
+
+    return bytes_obj
+
+
+def bytes_to_integer(bytes):
+    return int.from_bytes(bytes, byteorder="big")
 
 
 def isPKCSConforming(
@@ -16,7 +33,7 @@ def isPKCSConforming(
     """
     # Takes longer than threshold -> PKCS conforming (no error raised)
 
-    c = cipherText.to_bytes((cipherText.bit_length() + 7) // 8, byteorder="big")
+    c = integer_to_bytes(cipherText)
     # a = oracle.time_check(c)
     # b = oracle.time_check(c)
     # return min(a, b) > decisionThreshold
@@ -32,7 +49,7 @@ def ceilDiv(a: int, b: int) -> int:
     Returns:
         The ceiling of the division.
     """
-    return -(-a // b)  # Equivalent to numpy.ceil(a / b)
+    return a // b + (a % b > 0)  # Equivalent to numpy.ceil(a / b)
 
 
 def floorDiv(a: int, b: int) -> int:
@@ -40,7 +57,7 @@ def floorDiv(a: int, b: int) -> int:
     Calculate the floor of the division of a by b.
     Args:
         a: The numerator.
-        b: The denominator.
+        b: The denominator  .
     Returns:
         The floor of the division.
     """

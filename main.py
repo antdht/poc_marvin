@@ -5,10 +5,25 @@ from typing import cast
 import portion as P
 
 import oracle
-from utils import ceilDiv, floorDiv, isPKCSConforming
+from utils import ceilDiv, floorDiv, integer_to_bytes, isPKCSConforming
 
 
 Interval = namedtuple("Interval", ["lower_bound", "upper_bound"])
+
+
+def PKCS1_decode(encoded):
+    """
+    Decodes a PKCS1 v1.5 string.
+    Remove constant bytes and random pad until arriving at "\x00".
+    The rest is the message.
+    """
+
+    encoded = encoded[2:]
+    idx = encoded.index(b"\x00")
+
+    message = encoded[idx + 1 :]
+
+    return message
 
 
 def safe_interval_insert(M_new: list, interval: Interval):
@@ -32,6 +47,31 @@ def safe_interval_insert(M_new: list, interval: Interval):
     return M_new
 
 
+# Step 3.
+def update_intervals(M, s, B, n):
+    """
+    After found the s value, compute the new list of intervals
+    """
+
+    M_new = []
+
+    for a, b in M:
+        r_lower = ceilDiv(a * s - 3 * B + 1, n)
+        r_upper = ceilDiv(b * s - 2 * B, n)
+
+        for r in range(r_lower, r_upper):
+            lower_bound = max(a, ceilDiv(2 * B + r * n, s))
+            upper_bound = min(b, floorDiv(3 * B - 1 + r * n, s))
+
+            interval = Interval(lower_bound, upper_bound)
+
+            M_new = safe_interval_insert(M_new, interval)
+
+    M.clear()
+
+    return M_new
+
+
 def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
     """
     Marvin's attack on RSA PKCS#1 v1.5 padding.
@@ -45,8 +85,8 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
     public_numbers = cast(rsa.RSAPublicNumbers, public_key.public_numbers())
     n = public_numbers.n
     e = public_numbers.e
-    B = 2 ** (8 * ((n.bit_length() + 7) // 8) - 2)
-    M = [(2 * B, 3 * B - 1)]
+    B = 2 ** (8 * ((n.bit_length() // 8) - 2))
+    M = [Interval(2 * B, 3 * B - 1)]
 
     c = int.from_bytes(ciphertext, byteorder="big")
 
@@ -54,18 +94,20 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
     decisionThreshold = 55000
     print("decisionThreshold:", decisionThreshold)
 
-    s = 1
+    s = ceilDiv(n, (3 * B))
+    print("s:", s)
     i = 1
     while True:
+        # Step 2.A
         if i == 1:
             print("First iteration")
-            # First iteration
-            s = ceilDiv(n, (3 * B))
+            # First iteratio
             while True:
                 craftedCipher = (c * pow(s, e, n)) % n
                 if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                     break
                 s += 1
+        # Step 2.B
         elif len(M) > 1:
             print("M > 1")
             s += 1
@@ -74,11 +116,12 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
                 if isPKCSConforming(craftedCipher, oracle, decisionThreshold):
                     break
                 s += 1
+        # Step 2.C
         else:
-            print("one interval left")
+            print("M == 1")
             found = False
-            a = cast(int, M[0][0])
-            b = cast(int, M[0][1])
+            a = M[0].lower_bound
+            b = M[0].upper_bound
             r = ceilDiv(2 * (b * s - 2 * B), n)
             while True:
                 s_min = ceilDiv((2 * B + r * n), b)
@@ -96,50 +139,36 @@ def marvin_break(ciphertext: bytes, oracle: oracle.Oracle):
 
         # Narrowing down the set of solutions
         print(f"s: {s}")
-        newM = []
-        r_min = 0
-        r_max = 0
-        for a, b in M:
-            r_min = ceilDiv((a * s - 3 * B + 1), n)
-            r_max = floorDiv((b * s - 2 * B), n)
-            for r in range(r_min, r_max + 1):
-                new_a = max(a, ceilDiv((2 * B + r * n), s))
-                new_b = min(b, floorDiv((3 * B - 1 + r * n), s))
-
-                # NOTE: This verif should be useless if my math's understanding is correct
-
-                # if new_a <= new_b:
-                interval = Interval(new_a, new_b)
-                newM = safe_interval_insert(newM, interval)
-        if len(newM) != 1:
-            print("newM size:", len(newM))
+        M = update_intervals(M, s, B, n)
+        if len(M) != 1:
+            print("M size:", len(M))
             # print("newM:", newM)
             # print(f"r_min: {r_min}, r_max: {r_max}")
         else:
-            x = cast(int, M[0][0])
-            y = cast(int, M[0][1])
+            x = M[0].lower_bound
+            y = M[0].upper_bound
             print(f"range: {y - x}")
-        M = newM
-        if len(M) == 1 and M[0][0] == M[0][1]:
+
+        # Step 4
+        if len(M) == 1 and M[0].lower_bound == M[0].upper_bound:
             break
         i += 1
 
     a = cast(int, M[0][0])
-    m = (a * pow(s, -1, n)) % n
-    m_bytes = m.to_bytes((n.bit_length() + 7) // 8, byteorder="big")
+    # m = (a * pow(s, -1, n)) % n
     m = a % n
-    am_bytes = m.to_bytes((n.bit_length() + 7) // 8, byteorder="big")
-    print("n:", n)
-    print("a:", a)
-    print("m_bytes:", m_bytes)
+    am2_bytes = m.to_bytes((n.bit_length() + 7) // 8, byteorder="big")
+    am_bytes = integer_to_bytes(m)
+    # print("n:", n)
+    # print("a:", a)
+    # print("m_bytes:", m_bytes)
     print("alterned m_bytes:", am_bytes)
-    if not m_bytes.startswith(b"\x00\x02"):
-        print("Warning: invalid padding:", m_bytes[:10].hex())
+    assert not am_bytes.startswith(b"\x00\x02"), (
+        "Warning: invalid padding:",
+        am_bytes[:10].hex(),
+    )
 
-    sep = m_bytes.find(b"\x00", 2)
-    assert sep != -1, "Invalid PKCS#1 v1.5 padding structure"
-    plaintext = m_bytes[sep + 1 :]
-    return plaintext
+    return am_bytes
 
 
 if __name__ == "__main__":
@@ -153,4 +182,6 @@ if __name__ == "__main__":
 
     oracle_instance = oracle.Oracle(sk)
     ciphertext = oracle_instance.encrypt(b"Private")
-    marvin_break(ciphertext, oracle_instance)
+    discovered = marvin_break(ciphertext, oracle_instance)
+    decoded = PKCS1_decode(discovered)
+    print("decoded:", decoded)
