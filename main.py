@@ -18,10 +18,12 @@ def marvin_break(cipherText: bytes, oracle: oracle.Oracle):
     public_numbers = cast(rsa.RSAPublicNumbers, public_key.public_numbers())
     n = public_numbers.n
     e = public_numbers.e
-    B = 2 ** (8 * ((n.bit_length() + 7) // 8) - 2)
+    B = 2 ** (8 * (((n.bit_length() + 7) // 8) - 2))
     M = [(2 * B, 3 * B - 1)]  # List of tuples (intervals)
 
-    decisionThreshold = 10  # TODO: CHANGE THIS WHEN METHOD IMPLEMENTED
+    decisionThreshold = utils.generatePKCSThresholdhold(
+        oracle
+    )  # TODO: CHANGE THIS WHEN METHOD IMPLEMENTED
 
     i = 1
     s = 1
@@ -83,3 +85,12 @@ def marvin_break(cipherText: bytes, oracle: oracle.Oracle):
         return "decrypted message"  # Placeholder for the decrypted message
     else:
         i += 1
+
+
+if __name__ == "__main__":
+    # Example usage
+    oracle_instance = oracle.Oracle()
+    ciphertext = oracle_instance.encrypt(
+        b"Marvin is bleichenbacher exploiting side channels !"
+    )
+    discovered = marvin_break(ciphertext, oracle_instance)
