@@ -51,7 +51,7 @@ def isPKCSConforming(
     # a = oracle.time_check(c)
     # b = oracle.time_check(c)
     # return min(a, b) > decisionThreshold
-    return oracle.cheatDecrypt(c)
+    return oracle.verboseDecrypt(c)
 
 
 def ceilDiv(a: int, b: int) -> int:

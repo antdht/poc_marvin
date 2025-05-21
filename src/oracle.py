@@ -14,7 +14,7 @@ class Oracle:
             self._sk = cast(
                 rsa.RSAPrivateKey,
                 rsa.generate_private_key(
-                    public_exponent=65537, key_size=512, backend=default_backend()
+                    public_exponent=65537, key_size=2048, backend=default_backend()
                 ),
             )
 
@@ -41,7 +41,7 @@ class Oracle:
         except:
             pass
 
-    def cheatDecrypt(self, ciphertext: bytes) -> bool:
+    def verboseDecrypt(self, ciphertext: bytes) -> bool:
         """
         Decrypts the given ciphertext using the private key and returns True if successful.
 
@@ -65,7 +65,8 @@ class Oracle:
         Returns:
             bytes: The encrypted ciphertext.
         """
-        return self._pk.encrypt(plaintext, padding.PKCS1v15())
+        encBytes = cast(bytes, self._pk.encrypt(plaintext, padding.PKCS1v15()))
+        return encBytes
 
     def time_check(self, ciphertext: bytes) -> float:
         """
